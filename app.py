@@ -173,6 +173,19 @@ else:
     st.write("**Electrolyte / Drug Effect:** No strong pattern-based indicators detected in this snapshot.")
 
 st.warning("These waveform interpretations are AI-supported screening indicators from ECG images, not clinical diagnoses. For medical decisions, consult a qualified clinician.")
+uploaded_file = st.file_uploader("Upload ECG Image", type=["png", "jpg", "jpeg"])
+
+if uploaded_file is not None:
+    # ... preprocessing ...
+    # ... signal extraction ...
+
+    peaks, _ = find_peaks(signal, distance=50, prominence=1)
+
+    # ✅ FINAL REPORT MUST BE HERE (inside this block)
+    if len(peaks) >= 2:
+        # compute HR, HRV, report
+        ...
+
 if 'peaks' not in locals():
     peaks = np.array([])
 
