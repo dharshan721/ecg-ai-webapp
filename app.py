@@ -98,3 +98,13 @@ if uploaded_file is not None:
         st.info("Note: AI-based supportive analysis only. Not a medical diagnosis.")
     else:
         st.warning("Not enough R-peaks detected to generate ECG report.")
+st.markdown("### 🔎 Explanation of Results")
+
+st.write("**Heart Rate:** Number of heartbeats per minute. Normal resting range is typically 60–100 BPM.")
+st.write("**Heart Rate Category:** Indicates whether the heart rate is low, normal, or high compared to standard ranges.")
+st.write("**ECG Status:** Describes the detected rhythm pattern from the ECG waveform.")
+st.write("**Average RR Interval:** Average time gap between consecutive heartbeats.")
+st.write("**RR Interval Variation (HRV):** Measures variability between heartbeats; lower values may be associated with stress or fatigue.")
+st.write("**HRV Status:** Interprets HRV level to provide a general wellness indication.")
+st.write("**ECG Signal Quality:** Reflects the clarity of the uploaded ECG image used for analysis.")
+st.write("**Overall Risk Level:** A supportive risk indicator based on combined features (not a medical diagnosis).")
