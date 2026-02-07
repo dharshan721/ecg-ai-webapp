@@ -173,4 +173,6 @@ else:
     st.write("**Electrolyte / Drug Effect:** No strong pattern-based indicators detected in this snapshot.")
 
 st.warning("These waveform interpretations are AI-supported screening indicators from ECG images, not clinical diagnoses. For medical decisions, consult a qualified clinician.")
+if 'peaks' not in locals():
+    peaks = np.array([])
 
