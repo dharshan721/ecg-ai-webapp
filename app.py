@@ -1,10 +1,3 @@
-peaks = np.array([])
-signal = None
-heart_rate = None
-sdnn = None
-risk_level = None
-condition = None
-signal_quality = None
 import streamlit as st
 import cv2
 import numpy as np
@@ -103,94 +96,52 @@ if uploaded_file is not None:
         st.write(f"**Overall Risk Level:** {risk_level}")
 
         st.info("Note: AI-based supportive analysis only. Not a medical diagnosis.")
+
+        # ---- Advanced ECG Interpretation ----
+        st.markdown("### 🫀 Advanced ECG Waveform Interpretation (AI-Supported)")
+
+        qrs_widths = []
+        for p in peaks:
+            left = max(p - 5, 0)
+            right = min(p + 5, len(signal) - 1)
+            qrs_widths.append(right - left)
+        avg_qrs_width = np.mean(qrs_widths)
+
+        baseline_vals = []
+        for p in peaks:
+            pre = signal[max(p-20, 0):max(p-5, 0)]
+            post = signal[min(p+5, len(signal)-1):min(p+20, len(signal)-1)]
+            if len(pre) > 0 and len(post) > 0:
+                baseline_vals.append(np.mean(post) - np.mean(pre))
+        baseline_shift = np.nanmean(baseline_vals) if len(baseline_vals) else 0
+
+        rr_var = np.std(np.diff(peaks)) if len(peaks) >= 3 else 0
+
+        if rr_var < 10:
+            st.write("**P Wave (Atrial Activity):** Rhythm appears regular, suggesting organized atrial activation.")
+        else:
+            st.write("**P Wave (Atrial Activity):** Rhythm variability is noted; atrial activation may be irregular (supportive indicator).")
+
+        if avg_qrs_width > 10:
+            st.write("**QRS Complex (Ventricular Activity):** QRS appears wider than typical, suggesting possible conduction delay.")
+        else:
+            st.write("**QRS Complex (Ventricular Activity):** QRS width appears within typical range.")
+
+        if baseline_shift > 0.5:
+            st.write("**ST Segment:** Elevation-like change detected (supportive screening flag).")
+        elif baseline_shift < -0.5:
+            st.write("**ST Segment:** Depression-like change detected (supportive screening flag).")
+        else:
+            st.write("**ST Segment:** No significant ST change detected.")
+
+        st.warning("These interpretations are AI-supported screening indicators, not clinical diagnoses.")
+
     else:
         st.warning("Not enough R-peaks detected to generate ECG report.")
-st.markdown("### 🔎 Explanation of Results")
-
-st.markdown("### 🫀 Advanced ECG Waveform Interpretation (AI-Supported)")
-
-# --- Heuristic features from signal ---
-# Approx QRS width (in samples)
-if len(peaks) >= 2:
-    qrs_widths = []
-    for p in peaks:
-        left = max(p - 5, 0)
-        right = min(p + 5, len(signal) - 1)
-        qrs_widths.append(right - left)
-    avg_qrs_width = np.mean(qrs_widths)
 else:
-    avg_qrs_width = np.nan
+    st.info("Please upload an ECG image to start analysis.")
 
-# Baseline around peaks (proxy for ST change)
-baseline_vals = []
-for p in peaks:
-    pre = signal[max(p-20, 0):max(p-5, 0)]
-    post = signal[min(p+5, len(signal)-1):min(p+20, len(signal)-1)]
-    if len(pre) > 0 and len(post) > 0:
-        baseline_vals.append(np.mean(post) - np.mean(pre))
-baseline_shift = np.nanmean(baseline_vals) if len(baseline_vals) else 0
 
-# Rhythm regularity (RR variability)
-rr_var = np.std(np.diff(peaks)) if len(peaks) >= 3 else 0
 
-# --- Interpretations ---
-# P wave (proxy: rhythm regularity)
-if rr_var < 10:
-    st.write("**P Wave (Atrial Activity):** Rhythm appears regular, suggesting organized atrial activation.")
-else:
-    st.write("**P Wave (Atrial Activity):** Rhythm variability is noted; atrial activation may be irregular (supportive indicator).")
-
-# QRS complex (ventricular activation)
-if not np.isnan(avg_qrs_width) and avg_qrs_width > 10:
-    st.write("**QRS Complex (Ventricular Activity):** QRS appears wider than typical, which may suggest delayed ventricular conduction (supportive flag).")
-else:
-    st.write("**QRS Complex (Ventricular Activity):** QRS width appears within a typical range, suggesting normal ventricular activation.")
-
-# T wave (recovery phase – proxy using post-peak slope)
-if sdnn < 20:
-    st.write("**T Wave (Recovery Phase):** Recovery pattern may be influenced by stress or fatigue (supportive indicator).")
-else:
-    st.write("**T Wave (Recovery Phase):** Recovery pattern appears stable in this recording.")
-
-# ST segment changes (ischemia proxy)
-if baseline_shift > 0.5:
-    st.write("**ST Segment:** Elevation-like baseline shift detected. This can be associated with ischemic changes (supportive screening flag).")
-elif baseline_shift < -0.5:
-    st.write("**ST Segment:** Depression-like baseline shift detected. This can be associated with reduced blood flow (supportive screening flag).")
-else:
-    st.write("**ST Segment:** No significant baseline shift detected in this recording.")
-
-# Conduction blocks (proxy via irregular RR + widened QRS)
-if (rr_var > 15) and (not np.isnan(avg_qrs_width) and avg_qrs_width > 10):
-    st.write("**Conduction Blocks:** Patterns suggest possible conduction delay (e.g., AV block or bundle branch delay) – supportive indicator.")
-else:
-    st.write("**Conduction Blocks:** No strong supportive indicators of conduction block detected in this snapshot.")
-
-# Heart enlargement / strain (LVH proxy – amplitude heuristic)
-signal_amp = np.nanmax(signal) - np.nanmin(signal)
-if signal_amp > np.percentile(np.abs(signal), 90):
-    st.write("**Heart Enlargement / Strain:** Higher signal amplitude may indicate ventricular strain patterns (supportive indicator).")
-else:
-    st.write("**Heart Enlargement / Strain:** No strong amplitude-based indicators of ventricular strain detected.")
-
-# Electrolyte / Drug effect (pattern-based proxy)
-if sdnn < 15 and heart_rate > 90:
-    st.write("**Electrolyte / Drug Effect:** Pattern may be influenced by physiological stress or medication effects (supportive indicator).")
-else:
-    st.write("**Electrolyte / Drug Effect:** No strong pattern-based indicators detected in this snapshot.")
-
-st.warning("These waveform interpretations are AI-supported screening indicators from ECG images, not clinical diagnoses. For medical decisions, consult a qualified clinician.")
-uploaded_file = st.file_uploader("Upload ECG Image", type=["png", "jpg", "jpeg"])
-
-if uploaded_file is not None:
-    # ... preprocessing ...
-    # ... signal extraction ...
-
-    peaks, _ = find_peaks(signal, distance=50, prominence=1)
-
-    # ✅ FINAL REPORT MUST BE HERE (inside this block)
-    if len(peaks) >= 2:
-        # compute HR, HRV, report
-        ...
 
 
