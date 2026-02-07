@@ -1,3 +1,10 @@
+peaks = np.array([])
+signal = None
+heart_rate = None
+sdnn = None
+risk_level = None
+condition = None
+signal_quality = None
 import streamlit as st
 import cv2
 import numpy as np
@@ -186,6 +193,4 @@ if uploaded_file is not None:
         # compute HR, HRV, report
         ...
 
-if 'peaks' not in locals():
-    peaks = np.array([])
 
