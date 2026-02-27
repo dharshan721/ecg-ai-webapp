@@ -65,79 +65,74 @@ if uploaded_file is not None:
 
     # ---- Final ECG AI Report ----
     if len(peaks) >= 2:
-        rr = np.diff(peaks)
-        heart_rate = 60 / (np.mean(rr) / 100)
 
+        fs = 250  # Assumed sampling frequency (adjust if needed)
+
+        rr = np.diff(peaks)
         mean_rr = np.mean(rr)
         sdnn = np.std(rr)
 
+        heart_rate = 60 * fs / mean_rr
+        avg_rr_sec = mean_rr / fs
+
+        # ---- Heart Rate Category ----
         if heart_rate < 60:
-            condition = "Bradycardia"
-            hr_category = "Low Heart Rate"
+            hr_category = "Low Heart Rate (Bradycardia)"
         elif heart_rate > 100:
-            condition = "Tachycardia"
-            hr_category = "High Heart Rate"
+            hr_category = "High Heart Rate (Tachycardia)"
         else:
-            condition = "Normal Sinus Rhythm"
             hr_category = "Normal Heart Rate"
 
-        hrv_status = "Low HRV (Possible Stress)" if sdnn < 20 else "Normal HRV"
-        signal_quality = "Good Signal Quality" if len(peaks) > 5 else "Moderate Signal Quality"
-        risk_level = "Mild Risk (Stress Related)" if hrv_status != "Normal HRV" else "Low Risk"
+        # ---- Rhythm Description ----
+        if sdnn < 15:
+            rhythm_desc = "Regular rhythm (beats evenly spaced)"
+        else:
+            rhythm_desc = "Irregular rhythm (variable RR intervals)"
 
+        # ---- HRV Interpretation ----
+        if sdnn < 15:
+            hrv_text = "Low variation (Possible Stress)"
+            hrv_status = "Low HRV"
+        elif 15 <= sdnn <= 50:
+            hrv_text = "Moderate variation"
+            hrv_status = "Normal HRV"
+        else:
+            hrv_text = "High variation (Good autonomic balance)"
+            hrv_status = "High HRV"
+
+        # ---- Signal Quality ----
+        if len(peaks) > 8:
+            signal_quality = "Good (clear waveform, minimal noise)"
+        elif len(peaks) > 4:
+            signal_quality = "Moderate quality (some noise detected)"
+        else:
+            signal_quality = "Poor quality (insufficient peak detection)"
+
+        # ---- Risk Level ----
+        if 60 <= heart_rate <= 100 and sdnn >= 15:
+            risk_level = "Low Risk (Stable rhythm)"
+        elif 60 <= heart_rate <= 100 and sdnn < 15:
+            risk_level = "Mild Risk (Possible Stress Related)"
+        else:
+            risk_level = "Moderate Risk – Further Evaluation Recommended"
+
+        # ---- Display Report ----
         st.subheader("ECG AI Analysis Report")
+
         st.write(f"**Heart Rate:** {int(heart_rate)} BPM")
         st.write(f"**Heart Rate Category:** {hr_category}")
-        st.write(f"**ECG Status:** {condition}")
-        st.write(f"**Average RR Interval:** {round(mean_rr, 2)}")
-        st.write(f"**RR Interval Variation (HRV):** {round(sdnn, 2)}")
+        st.write(f"**ECG Status:** {rhythm_desc}")
+        st.write(f"**Average RR Interval:** {round(avg_rr_sec, 3)} seconds")
+        st.write(f"**RR Interval Variation (HRV):** {hrv_text}")
         st.write(f"**HRV Status:** {hrv_status}")
         st.write(f"**ECG Signal Quality:** {signal_quality}")
         st.write(f"**Overall Risk Level:** {risk_level}")
 
         st.info("Note: AI-based supportive analysis only. Not a medical diagnosis.")
 
-        # ---- Advanced ECG Interpretation ----
-        st.markdown("### 🫀 Advanced ECG Waveform Interpretation (AI-Supported)")
-
-        qrs_widths = []
-        for p in peaks:
-            left = max(p - 5, 0)
-            right = min(p + 5, len(signal) - 1)
-            qrs_widths.append(right - left)
-        avg_qrs_width = np.mean(qrs_widths)
-
-        baseline_vals = []
-        for p in peaks:
-            pre = signal[max(p-20, 0):max(p-5, 0)]
-            post = signal[min(p+5, len(signal)-1):min(p+20, len(signal)-1)]
-            if len(pre) > 0 and len(post) > 0:
-                baseline_vals.append(np.mean(post) - np.mean(pre))
-        baseline_shift = np.nanmean(baseline_vals) if len(baseline_vals) else 0
-
-        rr_var = np.std(np.diff(peaks)) if len(peaks) >= 3 else 0
-
-        if rr_var < 10:
-            st.write("**P Wave (Atrial Activity):** Rhythm appears regular, suggesting organized atrial activation.")
-        else:
-            st.write("**P Wave (Atrial Activity):** Rhythm variability is noted; atrial activation may be irregular (supportive indicator).")
-
-        if avg_qrs_width > 10:
-            st.write("**QRS Complex (Ventricular Activity):** QRS appears wider than typical, suggesting possible conduction delay.")
-        else:
-            st.write("**QRS Complex (Ventricular Activity):** QRS width appears within typical range.")
-
-        if baseline_shift > 0.5:
-            st.write("**ST Segment:** Elevation-like change detected (supportive screening flag).")
-        elif baseline_shift < -0.5:
-            st.write("**ST Segment:** Depression-like change detected (supportive screening flag).")
-        else:
-            st.write("**ST Segment:** No significant ST change detected.")
-
-        st.warning("These interpretations are AI-supported screening indicators, not clinical diagnoses.")
-
     else:
         st.warning("Not enough R-peaks detected to generate ECG report.")
+
 else:
     st.info("Please upload an ECG image to start analysis.")
 
