@@ -8,7 +8,7 @@ st.set_page_config(page_title="ECG AI Analysis", layout="wide")
 st.title("ECG AI Analysis System")
 st.write("Upload an ECG image to analyze heart rate and cardiac condition")
 
-uploaded_file = st.file_uploader("Upload ECG Image", type=["png", "jpg", "jpeg"])  FROM THIS CODE WHAT I WANTS TO CHANGE
+uploaded_file = st.file_uploader("Upload ECG Image", type=["png", "jpg", "jpeg"])  
 
 if uploaded_file is not None:
 # ---- Read & display image ----
