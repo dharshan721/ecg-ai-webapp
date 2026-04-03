@@ -87,7 +87,7 @@ def create_pdf(report_data):
 
         # Background Image (optional)
         try:
-            bg = ImageReader("heart_bg.png")  # place image in project folder
+            bg = ImageReader("https://example.com/heart.png")  # place image in project folder
             canvas.drawImage(bg, 0, 0, width=A4[0], height=A4[1], mask='auto')
         except:
             pass
