@@ -3,7 +3,13 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
-from docx import Document
+
+# PDF imports
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.lib.utils import ImageReader
 from io import BytesIO
 
 st.set_page_config(page_title="ECG AI Analysis", layout="wide")
@@ -25,36 +31,79 @@ st.markdown("---")
 # ------------------ FILE UPLOAD ------------------
 uploaded_file = st.file_uploader("Upload ECG Image", type=["png", "jpg", "jpeg"])
 
-# ------------------ DOC CREATION FUNCTION ------------------
-def create_doc(report_data):
-    doc = Document()
 
-    doc.add_heading("ECG AI ANALYSIS SYSTEM", 0)
-
-    doc.add_heading("Patient Details", 1)
-    doc.add_paragraph(f"Name: {name}")
-    doc.add_paragraph(f"Age: {age}")
-    doc.add_paragraph(f"Gender: {gender}")
-    doc.add_paragraph(f"Date: {date}")
-
-    doc.add_heading("ECG Analysis Results", 1)
-    doc.add_paragraph(f"Heart Rate: {report_data['heart_rate']} BPM")
-    doc.add_paragraph(f"Heart Rate Category: {report_data['hr_category']}")
-    doc.add_paragraph(f"ECG Status: {report_data['condition']}")
-    doc.add_paragraph(f"Average RR Interval: {report_data['mean_rr']}")
-    doc.add_paragraph(f"HRV: {report_data['hrv']}")
-    doc.add_paragraph(f"HRV Status: {report_data['hrv_status']}")
-    doc.add_paragraph(f"Signal Quality: {report_data['signal_quality']}")
-    doc.add_paragraph(f"Risk Level: {report_data['risk_level']}")
-
-    doc.add_heading("Created By", 1)
-    doc.add_paragraph("Your Name / Team Name")
-
+# ------------------ PDF FUNCTION ------------------
+def create_pdf(report_data):
     buffer = BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
 
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=60,
+        bottomMargin=40
+    )
+
+    styles = getSampleStyleSheet()
+    content = []
+
+    # Title
+    content.append(Paragraph("<b>ECG AI ANALYSIS REPORT</b>", styles['Title']))
+    content.append(Spacer(1, 20))
+
+    # Patient Details
+    content.append(Paragraph("<b>Patient Details</b>", styles['Heading2']))
+    content.append(Spacer(1, 10))
+    content.append(Paragraph(f"Name: {name}", styles['Normal']))
+    content.append(Paragraph(f"Age: {age}", styles['Normal']))
+    content.append(Paragraph(f"Gender: {gender}", styles['Normal']))
+    content.append(Paragraph(f"Date: {date}", styles['Normal']))
+
+    content.append(Spacer(1, 20))
+
+    # Results
+    content.append(Paragraph("<b>ECG Results</b>", styles['Heading2']))
+    content.append(Spacer(1, 10))
+    content.append(Paragraph(f"Heart Rate: {report_data['heart_rate']} BPM", styles['Normal']))
+    content.append(Paragraph(f"Heart Rate Category: {report_data['hr_category']}", styles['Normal']))
+    content.append(Paragraph(f"ECG Status: {report_data['condition']}", styles['Normal']))
+    content.append(Paragraph(f"Average RR Interval: {report_data['mean_rr']}", styles['Normal']))
+    content.append(Paragraph(f"HRV: {report_data['hrv']}", styles['Normal']))
+    content.append(Paragraph(f"HRV Status: {report_data['hrv_status']}", styles['Normal']))
+    content.append(Paragraph(f"Signal Quality: {report_data['signal_quality']}", styles['Normal']))
+    content.append(Paragraph(f"Risk Level: {report_data['risk_level']}", styles['Normal']))
+
+    content.append(Spacer(1, 20))
+
+    content.append(Paragraph(
+        "<i>Note: AI-based supportive analysis only. Not a medical diagnosis.</i>",
+        styles['Italic']
+    ))
+
+    # Background + Border
+    def add_background(canvas, doc):
+        canvas.saveState()
+
+        # Background Image (optional)
+        try:
+            bg = ImageReader("heart_bg.png")  # place image in project folder
+            canvas.drawImage(bg, 0, 0, width=A4[0], height=A4[1], mask='auto')
+        except:
+            pass
+
+        # Red Border (hospital style)
+        canvas.setStrokeColor(colors.red)
+        canvas.setLineWidth(2)
+        canvas.rect(20, 20, A4[0]-40, A4[1]-40)
+
+        canvas.restoreState()
+
+    doc.build(content, onFirstPage=add_background, onLaterPages=add_background)
+
+    buffer.seek(0)
     return buffer
+
 
 # ------------------ MAIN PROCESS ------------------
 if uploaded_file is not None:
@@ -110,7 +159,7 @@ if uploaded_file is not None:
     ax2.set_title("Detected R-Peaks")
     st.pyplot(fig2)
 
-    # ------------------ REPORT ------------------
+    # REPORT
     if len(peaks) >= 2:
         rr = np.diff(peaks)
         heart_rate = 60 / (np.mean(rr) / 100)
@@ -142,7 +191,6 @@ if uploaded_file is not None:
         st.write(f"Signal Quality: {signal_quality}")
         st.write(f"Risk Level: {risk_level}")
 
-        # Save data for report
         report_data = {
             "heart_rate": int(heart_rate),
             "hr_category": hr_category,
@@ -156,14 +204,14 @@ if uploaded_file is not None:
 
         st.info("Note: AI-based supportive analysis only. Not a medical diagnosis.")
 
-        # ------------------ DOWNLOAD BUTTON ------------------
-        doc_file = create_doc(report_data)
+        # DOWNLOAD PDF
+        pdf_file = create_pdf(report_data)
 
         st.download_button(
-            label="📄 Download ECG Report",
-            data=doc_file,
-            file_name="ECG_Report.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            label="📄 Download ECG Report (PDF)",
+            data=pdf_file,
+            file_name="ECG_Report.pdf",
+            mime="application/pdf"
         )
 
     else:
@@ -171,7 +219,6 @@ if uploaded_file is not None:
 
 else:
     st.info("Please upload an ECG image to start analysis.")
-
 
 
 
